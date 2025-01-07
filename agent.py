@@ -84,13 +84,24 @@ async def entrypoint(ctx: JobContext):
     logger.info("语音助手启动成功")
 
     try:
-        await agent.say("你好！我是张雨婷，很高兴为你解答法律相关的问题!", allow_interruptions=True)
-        logger.info("发送初始问候")
+        # 根据 AGENT_NAME 选择不同的问候语
+        greeting = {
+            "lawyer": "你好！我是张雨婷，很高兴为你解答法律相关的问题!",
+            "stewardess": "我是你的空姐朱莉娅。请问有什么我可以帮到你的吗？"
+        }.get(os.getenv('AGENT_NAME', 'default_agent'))
+        
+        if greeting:
+            await agent.say(greeting, allow_interruptions=True)
+            logger.info("发送初始问候")
+        else:
+            logger.warning(f"未知的 AGENT_NAME: {os.getenv('AGENT_NAME')}")
+            
     except Exception as e:
         logger.error(f"初始问候发送失败: {e}")
 
 if __name__ == "__main__":
     agent_name = os.getenv('AGENT_NAME', 'default_agent')
+    logger.info(f"启动Agent: {agent_name}")
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
