@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 from dotenv import load_dotenv
 from livekit.agents import (
     AutoSubscribe,
@@ -12,8 +13,14 @@ from livekit.agents import (
 from livekit.agents.pipeline import VoicePipelineAgent
 from livekit.plugins import openai, silero, cartesia
 from dify_llm import DifyLLM
+from threading import Thread
 
-load_dotenv('.env.local')
+# 加载 .env.local 文件
+def load_env():
+    load_dotenv('.env.local')
+    logging.info("环境变量已加载/更新")
+
+load_env()
 
 # 配置日志
 logging.basicConfig(
@@ -25,6 +32,26 @@ logging.getLogger("openai").setLevel(logging.WARNING)
 logging.getLogger("openai._base_client").setLevel(logging.WARNING)
 
 logger = logging.getLogger("voice-agent")
+
+def watch_env_file(file_path: str, interval: int = 5):
+    """
+    监控 .env.local 文件是否更新，并在更新时重新加载环境变量
+    """
+    last_modified_time = os.path.getmtime(file_path)
+
+    while True:
+        try:
+            current_modified_time = os.path.getmtime(file_path)
+            if current_modified_time != last_modified_time:
+                load_env()
+                last_modified_time = current_modified_time
+                logger.info(".env.local 文件已更新，重新加载环境变量")
+        except Exception as e:
+            logger.error(f"监控 .env.local 文件时出错: {e}")
+        time.sleep(interval)
+
+# 启动文件监控线程
+Thread(target=watch_env_file, args=('.env.local',), daemon=True).start()
 
 def prewarm(proc: JobProcess):
     proc.userdata["vad"] = silero.VAD.load()
@@ -67,14 +94,13 @@ async def entrypoint(ctx: JobContext):
         tts=cartesia.TTS(
             model="sonic-multilingual",
             language="zh",
-            voice="bafcab8d-d391-44fe-9711-e5c94e899f43",
+            voice=os.getenv("CARTESIA_VOICE_ID", "bafcab8d-d391-44fe-9711-e5c94e899f43"),  # 从环境变量获取 voice ID
             api_key=os.environ["CARTESIA_API_KEY"]
         ),
-        #llm=openai.LLM(
-            #base_url="http://localhost:11438/v1",
-            #model="Hermes-3-Llama-3.1-405B"),
-            #model="gpt-4o"),
-        llm=DifyLLM(api_key=os.getenv('DIFY_API_KEY'),api_url=os.getenv('DIFY_BASE_URL')),
+        llm=DifyLLM(
+            api_key=os.getenv('DIFY_API_KEY'),
+            api_url=os.getenv('DIFY_BASE_URL')
+        ),
     )
 
     # 设置事件监听器
