@@ -92,7 +92,7 @@ async def entrypoint(ctx: JobContext):
         vad=ctx.proc.userdata["vad"],
         stt=openai.STT(language="zh"),
         tts=cartesia.TTS(
-            model="sonic-multilingual",
+            model="sonic",
             language="zh",
             voice=os.getenv("CARTESIA_VOICE_ID", "bafcab8d-d391-44fe-9711-e5c94e899f43"),  # 从环境变量获取 voice ID
             api_key=os.environ["CARTESIA_API_KEY"]
