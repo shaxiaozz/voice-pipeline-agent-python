@@ -94,7 +94,9 @@ async def entrypoint(ctx: JobContext):
         tts=cartesia.TTS(
             model="sonic",
             language="zh",
-            voice=os.getenv("CARTESIA_VOICE_ID", "bafcab8d-d391-44fe-9711-e5c94e899f43"),  # 从环境变量获取 voice ID
+            speed=os.getenv("CARTESIA_SPEED", "normal"),
+            emotion=os.getenv("CARTESIA_EMOTION", "anger:high,positivity:high").split(","),
+            voice=os.getenv("CARTESIA_VOICE_ID", "bafcab8d-d391-44fe-9711-e5c94e899f43"),
             api_key=os.environ["CARTESIA_API_KEY"]
         ),
         llm=DifyLLM(
